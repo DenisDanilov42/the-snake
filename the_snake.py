@@ -37,7 +37,7 @@ SPEED = 5
 
 # Настройка игрового окна:
 screen = pygame.display.set_mode(
-    (SCREEN_WIDTH, SCREEN_HEIGHT + GRID_SIZE), 0, 32)
+    (SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
 
 # Заголовок окна игрового поля:
 pygame.display.set_caption('Змейка')
