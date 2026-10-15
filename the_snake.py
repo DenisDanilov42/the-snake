@@ -49,6 +49,9 @@ clock = pygame.time.Clock()
 class GameObject:
     """Родительский класс игровых объектов."""
 
+    # флаг общего сброса и начала новой игры
+    flag_reset = False
+
     def __init__(self, body_color=BORDER_COLOR) -> None:
         # инициализация позиции в центре поля
         self.position = (SCREEN_WIDTH // 2 - GRID_SIZE,
@@ -59,10 +62,15 @@ class GameObject:
         """Обеспечивает инициализацию базового метода отображения объектов."""
         pass
 
+    @classmethod
+    def reset_status(cls, new_status: bool) -> None:
+        """Обеспечивает изменение флага flag_reset класса из всех дочерних."""
+        cls.flag_reset = new_status
+
 
 class Apple(GameObject):
     """Класс объекта Apple.
-    При поедании его змейка увеличивается на 1.
+    При поедании его длина и скорость Змейки увеличиваются на 1.
     """
 
     def __init__(self, body_color=APPLE_COLOR) -> None:
@@ -80,10 +88,14 @@ class Apple(GameObject):
         pygame.draw.rect(screen, self.body_color, rect)
         pygame.draw.rect(screen, BORDER_COLOR, rect, 1)
 
+    def reset(self) -> None:
+        """Сбрасывает настройки для начала новой игры."""
+        self.randomize_position()
+
 
 class BadApple(Apple):
     """Класс объекта BadApple.
-    При поедании его змейка уменьшается на 1.
+    При поедании его длина Змейки уменьшается, а скорость увеличивается на 1.
     """
 
     def __init__(self, body_color=BAD_APPLE_COLOR):
@@ -173,7 +185,7 @@ class Snake(GameObject):
     def check_eat_itself(self) -> None:
         """Начинает новую игру, если Змейка кусает себя."""
         if self.positions.count(self.get_head_position()) > 1:
-            self.reset()
+            self.flag_reset = True
 
 
 def handle_keys(game_object) -> None:
@@ -211,13 +223,23 @@ def check_eat_bad_apple(snake_object, bad_apple_object) -> None:
             snake_object.speed += 1
             bad_apple_object.randomize_position()
         else:
-            snake_object.reset()
+            snake_object.flag_reset = True
 
 
 def check_eat_stone(snake_object, stone_object) -> None:
     """Начинает новую игру после столкновения с объектом Stone."""
     if snake_object.get_head_position() == stone_object.position:
-        snake_object.reset()
+        snake_object.flag_reset = True
+
+
+def reset_all_objects(snake_object, apple_object,
+                      bad_apple_object, stone_object) -> None:
+    """Сбрасывает все настройки объектов для начала новой игры."""
+    snake_object.reset()
+    apple_object.reset()
+    bad_apple_object.reset()
+    stone_object.reset()
+    snake_object.flag_reset = False
 
 
 def main() -> None:
@@ -240,6 +262,8 @@ def main() -> None:
         check_eat_bad_apple(snake, bad_apple)
         check_eat_stone(snake, stone)
         snake.draw()
+        if snake.flag_reset:
+            reset_all_objects(snake, apple, bad_apple, stone)
         pygame.display.update()
         clock.tick(snake.speed)
 
