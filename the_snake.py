@@ -62,11 +62,6 @@ class GameObject:
         """Обеспечивает инициализацию базового метода отображения объектов."""
         pass
 
-    @classmethod
-    def reset_status(cls, new_status: bool) -> None:
-        """Обеспечивает изменение флага flag_reset класса из всех дочерних."""
-        cls.flag_reset = new_status
-
 
 class Apple(GameObject):
     """Класс объекта Apple.
