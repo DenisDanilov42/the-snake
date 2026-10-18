@@ -7,6 +7,8 @@ SCREEN_WIDTH, SCREEN_HEIGHT = 640, 480
 GRID_SIZE = 20
 GRID_WIDTH = SCREEN_WIDTH // GRID_SIZE
 GRID_HEIGHT = SCREEN_HEIGHT // GRID_SIZE
+HALF_WIDTH = SCREEN_WIDTH // 2 - GRID_SIZE
+HALF_HEIGHT = SCREEN_HEIGHT // 2 - GRID_SIZE
 
 # Направления движения:
 UP = (0, -1)
@@ -47,35 +49,44 @@ clock = pygame.time.Clock()
 
 
 class GameObject:
-    """Родительский класс игровых объектов."""
+    """Родительский объект."""
 
-    # флаг общего сброса и начала новой игры
     flag_reset = False
+    ocuppied_positions: list[tuple] = []
 
     def __init__(self, body_color=BORDER_COLOR) -> None:
         # инициализация позиции в центре поля
-        self.position = (SCREEN_WIDTH // 2 - GRID_SIZE,
-                         SCREEN_HEIGHT // 2 - GRID_SIZE)
+        self.position = (HALF_WIDTH, HALF_HEIGHT)
         self.body_color = body_color
 
     def draw(self) -> None:
         """Обеспечивает инициализацию базового метода отображения объектов."""
-        pass
 
 
 class Apple(GameObject):
-    """Класс объекта Apple.
-    При поедании его длина и скорость Змейки увеличиваются на 1.
+    """Объект Яблоко.
+    При поедании его длина и скорость Змейки увеличиваются.
     """
 
     def __init__(self, body_color=APPLE_COLOR) -> None:
         super().__init__(body_color)
         self.randomize_position()
 
-    def randomize_position(self) -> None:
-        """Обеспечивает случайное расположение объекта на поле."""
-        self.position = (randint(0, GRID_WIDTH - 1) * GRID_SIZE,
-                         randint(0, GRID_HEIGHT - 1) * GRID_SIZE)
+    def randomize_position(self,
+                           occup_position=(HALF_WIDTH, HALF_HEIGHT)) -> None:
+        """Обеспечивает случайное расположение объектов на поле без повторов,
+        наполнение и очищение списка занятых позиций
+        """
+        if occup_position in self.ocuppied_positions:
+            self.ocuppied_positions.remove(occup_position)
+        while True:
+            position = (randint(0, GRID_WIDTH - 1) * GRID_SIZE,
+                        randint(0, GRID_HEIGHT - 1) * GRID_SIZE)
+            if (position != occup_position
+               and position not in self.ocuppied_positions):
+                self.position = position
+                self.ocuppied_positions.append(position)
+                break
 
     def draw(self) -> None:
         """Обеспечивает отображение объекта на поле."""
@@ -89,8 +100,8 @@ class Apple(GameObject):
 
 
 class BadApple(Apple):
-    """Класс объекта BadApple.
-    При поедании его длина Змейки уменьшается, а скорость увеличивается на 1.
+    """Объект Испорченное яблоко.
+    При поедании его длина Змейки уменьшается, а скорость увеличивается.
     """
 
     def __init__(self, body_color=BAD_APPLE_COLOR):
@@ -98,8 +109,8 @@ class BadApple(Apple):
 
 
 class Stone(Apple):
-    """Класс объекта Stone.
-    При столкновении с ним игра начинается сначала.
+    """Объект Камень.
+    При столкновении с ним Змейки игра начинается сначала.
     """
 
     def __init__(self, body_color=STONE_COLOR):
@@ -107,18 +118,11 @@ class Stone(Apple):
 
 
 class Snake(GameObject):
-    """Класс объекта Snake.
-    Обеспечивает работу Змейки.
-    """
+    """Объект Змейка. Осуществляет работу Змейки."""
 
     def __init__(self, body_color=SNAKE_COLOR) -> None:
         super().__init__(body_color)
-        self.lenght = 1
-        self.positions = [self.position]
-        self.direction = RIGHT
-        self.next_direction = None
-        self.last = None
-        self.speed = SPEED
+        self.reset()
 
     def get_head_position(self) -> tuple:
         """Возвращает головной кортеж Змейки."""
@@ -126,9 +130,9 @@ class Snake(GameObject):
 
     def move(self) -> None:
         """Обеспечивает расчет движения Змейки."""
-        current_head = self.get_head_position()
-        new_head = (current_head[0] + self.direction[0] * GRID_SIZE,
-                    current_head[1] + self.direction[1] * GRID_SIZE)
+        head_x, head_y = self.get_head_position()
+        dir_x, dir_y = self.direction
+        new_head = (head_x + dir_x * GRID_SIZE, head_y + dir_y * GRID_SIZE)
         list.insert(self.positions, 0, new_head)
         self.last = self.positions[-1]
         if len(self.positions) > self.lenght:
@@ -142,7 +146,8 @@ class Snake(GameObject):
             pygame.draw.rect(screen, BORDER_COLOR, rect, 1)
 
         # Отрисовка головы змейки
-        head_rect = pygame.Rect(self.positions[0], (GRID_SIZE, GRID_SIZE))
+        head_rect = pygame.Rect(self.get_head_position(),
+                                (GRID_SIZE, GRID_SIZE))
         pygame.draw.rect(screen, self.body_color, head_rect)
         pygame.draw.rect(screen, BORDER_COLOR, head_rect, 1)
 
@@ -151,72 +156,70 @@ class Snake(GameObject):
             last_rect = pygame.Rect(self.last, (GRID_SIZE, GRID_SIZE))
             pygame.draw.rect(screen, BOARD_BACKGROUND_COLOR, last_rect)
 
-    def update_direction(self) -> None:
+    def update_direction(self, next_direction) -> None:
         """Обеспечивает обновление направления после нажатия на кнопку."""
-        if self.next_direction:
-            self.direction = self.next_direction
-            self.next_direction = None
+        self.direction = next_direction
 
     def check_border(self) -> None:
-        """Обеспечевает прохождение сквозь границы поля."""
-        head = list(self.get_head_position())
-        if head[0] % SCREEN_WIDTH == 0:
-            self.positions[0] = (0, head[1])
-        if head[0] == -GRID_SIZE:
-            self.positions[0] = (SCREEN_WIDTH - GRID_SIZE, head[1])
-        if head[1] % SCREEN_HEIGHT == 0:
-            self.positions[0] = (head[0], 0)
-        if head[1] == -GRID_SIZE:
-            self.positions[0] = (head[0], SCREEN_HEIGHT - GRID_SIZE)
+        """Обеспечивает прохождение сквозь границы поля."""
+        head_х, head_y = self.get_head_position()
+        if head_х % SCREEN_WIDTH == 0:
+            self.positions[0] = (0, head_y)
+        if head_х == -GRID_SIZE:
+            self.positions[0] = (SCREEN_WIDTH - GRID_SIZE, head_y)
+        if head_y % SCREEN_HEIGHT == 0:
+            self.positions[0] = (head_х, 0)
+        if head_y == -GRID_SIZE:
+            self.positions[0] = (head_х, SCREEN_HEIGHT - GRID_SIZE)
 
     def reset(self) -> None:
         """Сбрасывает настройки для начала новой игры."""
-        screen.fill(BOARD_BACKGROUND_COLOR)
         self.lenght = 1
         self.positions = [self.position]
         self.direction = choice([UP, DOWN, LEFT, RIGHT])
         self.speed = SPEED
 
-    def check_eat_itself(self) -> None:
-        """Начинает новую игру, если Змейка кусает себя."""
-        if self.positions.count(self.get_head_position()) > 1:
-            self.flag_reset = True
-
 
 def handle_keys(game_object) -> None:
-    """Обеспечевает управление Змейкой с помощью клавиатуры."""
+    """Обеспечивает управление Змейкой с помощью клавиатуры."""
+    turns = {(pygame.K_UP, UP): UP,
+             (pygame.K_UP, LEFT): UP,
+             (pygame.K_UP, RIGHT): UP,
+             (pygame.K_DOWN, DOWN): DOWN,
+             (pygame.K_DOWN, RIGHT): DOWN,
+             (pygame.K_DOWN, LEFT): DOWN,
+             (pygame.K_LEFT, UP): LEFT,
+             (pygame.K_LEFT, DOWN): LEFT,
+             (pygame.K_LEFT, LEFT): LEFT,
+             (pygame.K_RIGHT, UP): RIGHT,
+             (pygame.K_RIGHT, DOWN): RIGHT,
+             (pygame.K_RIGHT, RIGHT): RIGHT}
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             raise SystemExit
         elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_UP and game_object.direction != DOWN:
-                game_object.next_direction = UP
-            elif event.key == pygame.K_DOWN and game_object.direction != UP:
-                game_object.next_direction = DOWN
-            elif event.key == pygame.K_LEFT and game_object.direction != RIGHT:
-                game_object.next_direction = LEFT
-            elif event.key == pygame.K_RIGHT and game_object.direction != LEFT:
-                game_object.next_direction = RIGHT
-            game_object.update_direction()
+            key_direction = (event.key, game_object.direction)
+            if key_direction in turns:
+                game_object.update_direction(turns[key_direction])
 
 
 def check_eat_apple(snake_object, apple_object) -> None:
-    """Обеспечевает увеличение длины Змейки после съедания объекта Apple."""
+    """Обеспечивает увеличение длины Змейки после съедания объекта Apple."""
     if snake_object.get_head_position() == apple_object.position:
         snake_object.lenght += 1
         snake_object.speed += 1
-        apple_object.randomize_position()
+        apple_object.randomize_position(apple_object.position)
 
 
 def check_eat_bad_apple(snake_object, bad_apple_object) -> None:
-    """Обеспечевает уменьшение длины Змейки после съедания объекта BadApple."""
+    """Обеспечивает уменьшение длины Змейки после съедания объекта BadApple."""
     if snake_object.get_head_position() == bad_apple_object.position:
         if snake_object.lenght > 1:
             del snake_object.positions[0]
             snake_object.lenght -= 1
             snake_object.speed += 1
-            bad_apple_object.randomize_position()
+            bad_apple_object.randomize_position(bad_apple_object.position)
         else:
             snake_object.flag_reset = True
 
@@ -227,9 +230,16 @@ def check_eat_stone(snake_object, stone_object) -> None:
         snake_object.flag_reset = True
 
 
+def check_eat_itself(snake_object) -> None:
+    """Начинает новую игру, если Змейка кусает себя."""
+    if snake_object.get_head_position() in snake_object.positions[1:]:
+        snake_object.flag_reset = True
+
+
 def reset_all_objects(snake_object, apple_object,
                       bad_apple_object, stone_object) -> None:
     """Сбрасывает все настройки объектов для начала новой игры."""
+    apple_object.ocuppied_positions.clear()
     snake_object.reset()
     apple_object.reset()
     bad_apple_object.reset()
@@ -244,21 +254,21 @@ def main() -> None:
     apple = Apple()
     bad_apple = BadApple()
     stone = Stone()
-    running = True
-    while running:
+    while True:
         apple.draw()
         bad_apple.draw()
         stone.draw()
         handle_keys(snake)
         snake.move()
         snake.check_border()
-        snake.check_eat_itself()
+        check_eat_itself(snake)
         check_eat_apple(snake, apple)
         check_eat_bad_apple(snake, bad_apple)
         check_eat_stone(snake, stone)
-        snake.draw()
         if snake.flag_reset:
             reset_all_objects(snake, apple, bad_apple, stone)
+            screen.fill(BOARD_BACKGROUND_COLOR)
+        snake.draw()
         pygame.display.update()
         clock.tick(snake.speed)
 
