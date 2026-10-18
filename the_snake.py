@@ -205,7 +205,7 @@ def handle_keys(game_object) -> None:
 
 
 def check_eat_apple(snake_object, apple_object) -> None:
-    """Обеспечивает увеличение длины Змейки после съедания объекта Apple."""
+    """Обеспечивает увеличение длины Змейки после съедания яблока."""
     if snake_object.get_head_position() == apple_object.position:
         snake_object.lenght += 1
         snake_object.speed += 1
@@ -213,7 +213,9 @@ def check_eat_apple(snake_object, apple_object) -> None:
 
 
 def check_eat_bad_apple(snake_object, bad_apple_object) -> None:
-    """Обеспечивает уменьшение длины Змейки после съедания объекта BadApple."""
+    """Обеспечивает уменьшение длины Змейки после съедания
+    испорченного яблока.
+    """
     if snake_object.get_head_position() == bad_apple_object.position:
         if snake_object.lenght > 1:
             del snake_object.positions[0]
@@ -224,21 +226,17 @@ def check_eat_bad_apple(snake_object, bad_apple_object) -> None:
             snake_object.flag_reset = True
 
 
-def check_eat_stone(snake_object, stone_object) -> None:
-    """Начинает новую игру после столкновения с объектом Stone."""
-    if snake_object.get_head_position() == stone_object.position:
-        snake_object.flag_reset = True
-
-
-def check_eat_itself(snake_object) -> None:
-    """Начинает новую игру, если Змейка кусает себя."""
-    if snake_object.get_head_position() in snake_object.positions[1:]:
+def check_eat_stone_itself(snake_object, stone_object) -> None:
+    """Начинает новую игру после столкновения с камнем, или собой."""
+    if (snake_object.get_head_position() == stone_object.position
+       or snake_object.get_head_position() in snake_object.positions[1:]):
         snake_object.flag_reset = True
 
 
 def reset_all_objects(snake_object, apple_object,
                       bad_apple_object, stone_object) -> None:
     """Сбрасывает все настройки объектов для начала новой игры."""
+    screen.fill(BOARD_BACKGROUND_COLOR)
     apple_object.ocuppied_positions.clear()
     snake_object.reset()
     apple_object.reset()
@@ -261,13 +259,11 @@ def main() -> None:
         handle_keys(snake)
         snake.move()
         snake.check_border()
-        check_eat_itself(snake)
         check_eat_apple(snake, apple)
         check_eat_bad_apple(snake, bad_apple)
-        check_eat_stone(snake, stone)
+        check_eat_stone_itself(snake, stone)
         if snake.flag_reset:
             reset_all_objects(snake, apple, bad_apple, stone)
-            screen.fill(BOARD_BACKGROUND_COLOR)
         snake.draw()
         pygame.display.update()
         clock.tick(snake.speed)
