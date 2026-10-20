@@ -47,6 +47,20 @@ pygame.display.set_caption('Змейка')
 # Настройка времени:
 clock = pygame.time.Clock()
 
+# Словарь поворотов Змейки
+turns = {(pygame.K_UP, UP): UP,
+         (pygame.K_UP, LEFT): UP,
+         (pygame.K_UP, RIGHT): UP,
+         (pygame.K_DOWN, DOWN): DOWN,
+         (pygame.K_DOWN, RIGHT): DOWN,
+         (pygame.K_DOWN, LEFT): DOWN,
+         (pygame.K_LEFT, UP): LEFT,
+         (pygame.K_LEFT, DOWN): LEFT,
+         (pygame.K_LEFT, LEFT): LEFT,
+         (pygame.K_RIGHT, UP): RIGHT,
+         (pygame.K_RIGHT, DOWN): RIGHT,
+         (pygame.K_RIGHT, RIGHT): RIGHT}
+
 
 class GameObject:
     """Родительский объект."""
@@ -55,7 +69,6 @@ class GameObject:
     ocuppied_positions: list[tuple] = []
 
     def __init__(self, body_color=BORDER_COLOR) -> None:
-        # инициализация позиции в центре поля
         self.position = (HALF_WIDTH, HALF_HEIGHT)
         self.body_color = body_color
 
@@ -72,17 +85,23 @@ class Apple(GameObject):
         super().__init__(body_color)
         self.randomize_position()
 
-    def randomize_position(self,
-                           occup_position=(HALF_WIDTH, HALF_HEIGHT)) -> None:
+    # зачем каждый раз передавать параметр с занятыми ячейками на поле,
+    # при вызове метода, если он реализован как атрибут
+    # родительского класса ocuppied_positions или я не понимаю идею,
+    # тогда мне нужен контакт для общения
+
+    def randomize_position(
+            self,
+            occupied_position=(HALF_WIDTH, HALF_HEIGHT)) -> None:
         """Обеспечивает случайное расположение объектов на поле без повторов,
         наполнение и очищение списка занятых позиций
         """
-        if occup_position in self.ocuppied_positions:
-            self.ocuppied_positions.remove(occup_position)
+        if occupied_position in self.ocuppied_positions:
+            self.ocuppied_positions.remove(occupied_position)
         while True:
             position = (randint(0, GRID_WIDTH - 1) * GRID_SIZE,
                         randint(0, GRID_HEIGHT - 1) * GRID_SIZE)
-            if (position != occup_position
+            if (position != occupied_position
                and position not in self.ocuppied_positions):
                 self.position = position
                 self.ocuppied_positions.append(position)
@@ -123,6 +142,7 @@ class Snake(GameObject):
     def __init__(self, body_color=SNAKE_COLOR) -> None:
         super().__init__(body_color)
         self.reset()
+        self.direction = RIGHT
 
     def get_head_position(self) -> tuple:
         """Возвращает головной кортеж Змейки."""
@@ -182,18 +202,6 @@ class Snake(GameObject):
 
 def handle_keys(game_object) -> None:
     """Обеспечивает управление Змейкой с помощью клавиатуры."""
-    turns = {(pygame.K_UP, UP): UP,
-             (pygame.K_UP, LEFT): UP,
-             (pygame.K_UP, RIGHT): UP,
-             (pygame.K_DOWN, DOWN): DOWN,
-             (pygame.K_DOWN, RIGHT): DOWN,
-             (pygame.K_DOWN, LEFT): DOWN,
-             (pygame.K_LEFT, UP): LEFT,
-             (pygame.K_LEFT, DOWN): LEFT,
-             (pygame.K_LEFT, LEFT): LEFT,
-             (pygame.K_RIGHT, UP): RIGHT,
-             (pygame.K_RIGHT, DOWN): RIGHT,
-             (pygame.K_RIGHT, RIGHT): RIGHT}
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
