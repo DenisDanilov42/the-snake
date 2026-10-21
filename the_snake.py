@@ -66,7 +66,6 @@ class GameObject:
     """Родительский объект."""
 
     flag_reset = False
-    ocuppied_positions: list[tuple] = []
 
     def __init__(self, body_color=BORDER_COLOR) -> None:
         self.position = (HALF_WIDTH, HALF_HEIGHT)
@@ -83,29 +82,28 @@ class Apple(GameObject):
 
     def __init__(self, body_color=APPLE_COLOR) -> None:
         super().__init__(body_color)
+        # список занятых одиночных позиций, наследованных от Apple:
+        # яблоко, испорченное яблоко, камень
+        self.ocuppied_positions: list[tuple] = []
         self.randomize_position()
-
-    # зачем каждый раз передавать параметр с занятыми ячейками на поле,
-    # при вызове метода, если он реализован как атрибут
-    # родительского класса ocuppied_positions или я не понимаю идею,
-    # тогда мне нужен контакт для общения
 
     def randomize_position(
             self,
-            occupied_position=(HALF_WIDTH, HALF_HEIGHT)) -> None:
+            snake_positions=[(HALF_WIDTH, HALF_HEIGHT)]) -> None:
         """Обеспечивает случайное расположение объектов на поле без повторов,
         наполнение и очищение списка занятых позиций
         """
-        if occupied_position in self.ocuppied_positions:
-            self.ocuppied_positions.remove(occupied_position)
         while True:
             position = (randint(0, GRID_WIDTH - 1) * GRID_SIZE,
                         randint(0, GRID_HEIGHT - 1) * GRID_SIZE)
-            if (position != occupied_position
-               and position not in self.ocuppied_positions):
+            if (position != self.position
+               and position not in self.ocuppied_positions
+               and position not in snake_positions):
                 self.position = position
                 self.ocuppied_positions.append(position)
                 break
+        if self.position in self.ocuppied_positions:
+            self.ocuppied_positions.remove(self.position)
 
     def draw(self) -> None:
         """Обеспечивает отображение объекта на поле."""
@@ -217,7 +215,7 @@ def check_eat_apple(snake_object, apple_object) -> None:
     if snake_object.get_head_position() == apple_object.position:
         snake_object.lenght += 1
         snake_object.speed += 1
-        apple_object.randomize_position(apple_object.position)
+        apple_object.randomize_position(snake_object.positions)
 
 
 def check_eat_bad_apple(snake_object, bad_apple_object) -> None:
@@ -229,7 +227,7 @@ def check_eat_bad_apple(snake_object, bad_apple_object) -> None:
             del snake_object.positions[0]
             snake_object.lenght -= 1
             snake_object.speed += 1
-            bad_apple_object.randomize_position(bad_apple_object.position)
+            bad_apple_object.randomize_position(snake_object.positions)
         else:
             snake_object.flag_reset = True
 
@@ -244,7 +242,6 @@ def check_eat_stone_itself(snake_object, stone_object) -> None:
 def reset_all_objects(snake_object, apple_object,
                       bad_apple_object, stone_object) -> None:
     """Сбрасывает все настройки объектов для начала новой игры."""
-    screen.fill(BOARD_BACKGROUND_COLOR)
     apple_object.ocuppied_positions.clear()
     snake_object.reset()
     apple_object.reset()
@@ -272,6 +269,7 @@ def main() -> None:
         check_eat_stone_itself(snake, stone)
         if snake.flag_reset:
             reset_all_objects(snake, apple, bad_apple, stone)
+            screen.fill(BOARD_BACKGROUND_COLOR)
         snake.draw()
         pygame.display.update()
         clock.tick(snake.speed)
