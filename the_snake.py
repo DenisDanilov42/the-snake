@@ -89,10 +89,12 @@ class Apple(GameObject):
 
     def randomize_position(
             self,
-            snake_positions=[(HALF_WIDTH, HALF_HEIGHT)]) -> None:
+            snake_positions=None) -> None:
         """Обеспечивает случайное расположение объектов на поле без повторов,
         наполнение и очищение списка занятых позиций
         """
+        if snake_positions is None:
+            snake_positions = [(HALF_WIDTH, HALF_HEIGHT)]
         while True:
             position = (randint(0, GRID_WIDTH - 1) * GRID_SIZE,
                         randint(0, GRID_HEIGHT - 1) * GRID_SIZE)
