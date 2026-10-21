@@ -80,11 +80,12 @@ class Apple(GameObject):
     При поедании его длина и скорость Змейки увеличиваются.
     """
 
+    # список занятых одиночных позиций, наследованных от Apple:
+    # яблоко, испорченное яблоко, камень
+    ocuppied_positions: list[tuple[int, int]] = []
+
     def __init__(self, body_color=APPLE_COLOR) -> None:
         super().__init__(body_color)
-        # список занятых одиночных позиций, наследованных от Apple:
-        # яблоко, испорченное яблоко, камень
-        self.ocuppied_positions: list[tuple] = []
         self.randomize_position()
 
     def randomize_position(
@@ -95,6 +96,8 @@ class Apple(GameObject):
         """
         if snake_positions is None:
             snake_positions = [(HALF_WIDTH, HALF_HEIGHT)]
+        if self.position in self.ocuppied_positions:
+            self.ocuppied_positions.remove(self.position)
         while True:
             position = (randint(0, GRID_WIDTH - 1) * GRID_SIZE,
                         randint(0, GRID_HEIGHT - 1) * GRID_SIZE)
@@ -104,8 +107,7 @@ class Apple(GameObject):
                 self.position = position
                 self.ocuppied_positions.append(position)
                 break
-        if self.position in self.ocuppied_positions:
-            self.ocuppied_positions.remove(self.position)
+        
 
     def draw(self) -> None:
         """Обеспечивает отображение объекта на поле."""
@@ -278,4 +280,4 @@ def main() -> None:
 
 
 if __name__ == '__main__':
-    main()[0]
+    main()
